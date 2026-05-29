@@ -1,9 +1,7 @@
 name: "DevSecOps Pipeline"
 
-# Activa PR a main
+# Activa solo en PR a main
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
@@ -24,6 +22,10 @@ jobs:
         uses: terraform-linters/setup-tflint@v4
 
       - name: Terraform Init
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
         run: terraform init -input=false
 
       - name: Terraform Format & Validate
@@ -41,7 +43,7 @@ jobs:
         with:
           directory: .
           framework: terraform
-          soft_fail: true # Evita bloquear por reglas excesivas, solo muestra warnings
+          soft_fail: true
 
       - name: Generar Plan de Terraform para OPA
         env:
@@ -66,30 +68,3 @@ jobs:
       - name: OPA Policy - Solo T2 Micro
         run: |
           opa eval --format raw -i tfplan.json -d terraform_ec2_check.rego "data.terraform.ec2.violation" | grep -q '^\[\]$' || (echo "VIOLACION: Tipo de instancia no permitido." && exit 1)
-
-  terraform-apply:
-    name: "Despliegue (Terraform Apply)"
-    runs-on: ubuntu-latest
-    needs: validate-and-security
-    if: github.ref == 'refs/heads/main' # Solo despliega cuando se hace push/merge a main
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: us-east-1
-
-      - name: Terraform Init & Apply
-        env:
-          TF_VAR_public_key: ${{ secrets.TF_VAR_PUBLIC_KEY }}
-        run: |
-          terraform init
-          terraform apply -auto-approve
