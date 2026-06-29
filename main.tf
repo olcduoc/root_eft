@@ -1,20 +1,27 @@
 # ─────────────────────────────────────────────────────────────
 # main.tf  –  Repositorio Principal AUY1105-GRUPO-Nro1
-# Orquesta los módulos de redes y cómputo (EVA2)
+# Arquitectura Multi-AZ con subredes públicas y privadas (EVA3)
 # ─────────────────────────────────────────────────────────────
 
 module "redes" {
-  source = "github.com/olcduoc/terraform-aws-vpc-AUY1105-grupo-1?ref=9ff22fc7badf7e44230ca94e854834b3ad5fa16f"
+  source = "github.com/olcduoc/terraform-aws-vpc-AUY1105-grupo-1?ref=v2.0.0"
 
-  project_name        = var.project_name
-  vpc_cidr            = "10.1.0.0/16"
-  public_subnet_cidrs = ["10.1.1.0/24"]
-  availability_zones  = ["us-east-1a"]
-  ssh_allowed_cidr    = var.ssh_allowed_cidr
+  project_name = var.project_name
+  vpc_cidr     = "10.1.0.0/16"
+
+  # Multi-AZ: 2 subredes públicas en 2 zonas
+  public_subnet_cidrs = ["10.1.1.0/24", "10.1.2.0/24"]
+  availability_zones  = ["us-east-1a", "us-east-1b"]
+
+  # Subredes privadas en 2 zonas (v2.0.0)
+  private_subnet_cidrs = ["10.1.11.0/24", "10.1.12.0/24"]
+  enable_nat_gateway   = true
+
+  ssh_allowed_cidr = var.ssh_allowed_cidr
 }
 
 module "computo" {
-  source = "github.com/olcduoc/terraform-aws-ec2-AUY1105-grupo-1?ref=8ee259e5b942b04cdb5892828a996de24b29e721"
+  source = "github.com/olcduoc/terraform-aws-ec2-AUY1105-grupo-1?ref=v1.0.0"
 
   project_name      = var.project_name
   subnet_id         = module.redes.subnet_ids[0]
