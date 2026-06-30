@@ -11,17 +11,11 @@ variable "public_key" {
 variable "ssh_allowed_cidr" {
   description = "CIDR IP autorizado para acceso SSH. No usar 0.0.0.0/0."
   type        = string
-  default     = "181.43.52.214/32"
+  default     = "186.10.98.147/32"
 }
 
 variable "project_name" {
   description = "Nombre base del proyecto para etiquetar los recursos."
   type        = string
   default     = "AUY1105-GRUPO-Nro1"
-}
-
-variable "vpc_cidr" {
-  description = "Bloque CIDR para la VPC principal"
-  type        = string
-  default     = "10.0.0.0/16"
 }
