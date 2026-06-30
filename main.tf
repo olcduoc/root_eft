@@ -6,18 +6,13 @@
 module "redes" {
   source = "github.com/olcduoc/terraform-aws-vpc-AUY1105-grupo-1?ref=v2.0.0"
 
-  project_name = var.project_name
-  vpc_cidr     = var.vpc_cidr
-
-  # Multi-AZ: 2 subredes públicas en 2 zonas
-  public_subnet_cidrs = ["10.1.1.0/24", "10.1.2.0/24"]
-  availability_zones  = ["us-east-1a", "us-east-1b"]
-
-  # Subredes privadas en 2 zonas (v2.0.0)
+  project_name         = var.project_name
+  vpc_cidr             = "10.1.0.0/16"
+  public_subnet_cidrs  = ["10.1.1.0/24", "10.1.2.0/24"]
+  availability_zones   = ["us-east-1a", "us-east-1b"]
   private_subnet_cidrs = ["10.1.11.0/24", "10.1.12.0/24"]
   enable_nat_gateway   = true
-
-  ssh_allowed_cidr = var.ssh_allowed_cidr
+  ssh_allowed_cidr     = var.ssh_allowed_cidr
 }
 
 module "computo" {
