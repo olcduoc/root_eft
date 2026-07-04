@@ -4,6 +4,39 @@ Todos los cambios notables en este proyecto serán documentados en este archivo.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 Este proyecto adhiere a [Semantic Versioning](https://semver.org/).
 
+## [3.0.0] - 2026-06-28
+
+### Added
+- Backend remoto S3 (`auy1105-grupo1-tfstate`) con cifrado AES-256 y versionado habilitado.
+- Tabla DynamoDB (`auy1105-grupo1-tfstate-lock`) para bloqueo de estado concurrente.
+- Archivo `bootstrap_backend.tf` para crear los recursos del backend antes de la migración.
+- Soporte Multi-AZ: subredes públicas y privadas en `us-east-1a` y `us-east-1b`.
+- NAT Gateway para tráfico saliente desde subredes privadas.
+- Route Tables diferenciadas por tipo de subred (pública / privada).
+- Job `terraform-apply` en el pipeline CI/CD con captura de outputs y generación de evidencia.
+- Generación automática de evidencia en Markdown (`evidencia_pipeline.md`, `evidencia_apply.md`).
+- Comentario automático de evidencia en Pull Requests mediante `actions/github-script`.
+- Subida de artefactos de evidencia con retención de 30 días (`actions/upload-artifact@v4`).
+- Archivo `EVIDENCIAS_EFT126.md` con evidencias consolidadas por criterio de rúbrica.
+
+### Changed
+- Módulos referenciados por **tag semántico** `v1.0.0` en lugar de commit hash.
+- `versions.tf` actualizado con bloque `backend "s3"`.
+- `variables.tf` con variables adicionales para región, bucket y tabla DynamoDB.
+- `outputs.tf` con outputs de subredes privadas y NAT Gateway.
+- Workflow `AUY1105-GRUPO-Nro1.yml` reorganizado en 2 jobs con generación de evidencias.
+
+### Migration Guide
+```bash
+# Paso 1: crear recursos del backend (estado local)
+terraform init && terraform apply  # con bootstrap_backend.tf presente
+
+# Paso 2: migrar estado al backend remoto
+terraform init -migrate-state
+
+# Paso 3: eliminar bootstrap_backend.tf del directorio
+```
+
 ## [2.0.0] - 2026-05-28
 
 ### Added

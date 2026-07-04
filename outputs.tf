@@ -7,14 +7,24 @@ output "vpc_id" {
   value       = module.redes.vpc_id
 }
 
-output "subnet_ids" {
-  description = "IDs de las subredes públicas creadas por el módulo redes."
+output "public_subnet_ids" {
+  description = "IDs de las subredes PÚBLICAS (Multi-AZ) creadas por el módulo redes."
   value       = module.redes.subnet_ids
+}
+
+output "private_subnet_ids" {
+  description = "IDs de las subredes PRIVADAS (Multi-AZ) creadas por el módulo redes."
+  value       = module.redes.private_subnet_ids
 }
 
 output "security_group_id" {
   description = "ID del Security Group creado por el módulo redes."
   value       = module.redes.security_group_id
+}
+
+output "nat_gateway_id" {
+  description = "ID del NAT Gateway para tráfico saliente desde subredes privadas."
+  value       = module.redes.nat_gateway_id
 }
 
 output "instance_id" {
