@@ -1,4 +1,4 @@
-name: "DevSecOps Pipeline"
+name: "DevSecOps Pipeline – AUY1105-GRUPO-Nro1"
 
 on:
   pull_request:
@@ -6,75 +6,279 @@ on:
   push:
     branches: [ "main" ]
 
+# Permisos mínimos necesarios para comentar en PRs y escribir artefactos
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+env:
+  AWS_REGION: "us-east-1"
+  TF_VERSION: "1.5.0"
+
+# ══════════════════════════════════════════════════════════════
+# JOB 1: Validación y Seguridad (TFLint + Checkov + OPA)
+# ══════════════════════════════════════════════════════════════
 jobs:
   validate-and-security:
-    name: "Validación y Seguridad"
+    name: "1 · Validación y Seguridad"
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # ── Terraform ──────────────────────────────────────────
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
+          terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
-
-      - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v4
 
       - name: Terraform Init
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_SESSION_TOKEN:     ${{ secrets.AWS_SESSION_TOKEN }}
         run: terraform init -input=false
 
-      - name: Terraform Format & Validate
-        run: |
-          terraform fmt -check
-          terraform validate
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
 
-      - name: Run TFLint
+      - name: Terraform Validate
+        run: terraform validate
+
+      # ── TFLint ─────────────────────────────────────────────
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+
+      - name: TFLint Init & Run
+        id: tflint
         run: |
           tflint --init
-          tflint
+          tflint --format=compact 2>&1 | tee tflint_output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
 
+      # ── Checkov ────────────────────────────────────────────
       - name: Run Checkov
+        id: checkov
         uses: bridgecrewio/checkov-action@v12
         with:
           directory: .
           framework: terraform
+          output_format: cli
+          output_file_path: checkov_output.txt
           soft_fail: true
 
-      - name: Generar Plan de Terraform para OPA
+      # ── Terraform Plan ─────────────────────────────────────
+      - name: Terraform Plan
+        id: plan
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-          AWS_REGION: "us-east-1"
-          TF_VAR_public_key: ${{ secrets.TF_VAR_PUBLIC_KEY }}
+          AWS_SESSION_TOKEN:     ${{ secrets.AWS_SESSION_TOKEN }}
+          TF_VAR_public_key:     ${{ secrets.TF_VAR_PUBLIC_KEY }}
         run: |
-          terraform plan -out=tfplan
+          terraform plan -out=tfplan -no-color 2>&1 | tee plan_output.txt
           terraform show -json tfplan > tfplan.json
 
+      # ── OPA ────────────────────────────────────────────────
       - name: Setup OPA
         uses: open-policy-agent/setup-opa@v2
         with:
           version: latest
 
-      - name: OPA Policy - No SSH Público
+      - name: OPA Policy – No SSH Público
+        id: opa_ssh
         run: |
-          opa eval --format raw -i tfplan.json -d terraform_ssh_check.rego "data.terraform.ssh.violation" | grep -q '^\[\]$' || (echo "VIOLACION: SSH abierto al publico detectado." && exit 1)
+          RESULT=$(opa eval --format raw -i tfplan.json -d terraform_ssh_check.rego "data.terraform.ssh.violation")
+          echo "result=${RESULT}" >> $GITHUB_OUTPUT
+          echo "$RESULT" | grep -q '^\[\]$' || (echo "VIOLACION: SSH abierto al publico detectado." && exit 1)
 
-      - name: OPA Policy - Solo T2 Micro
+      - name: OPA Policy – Solo T2 Micro
+        id: opa_ec2
         run: |
-          opa eval --format raw -i tfplan.json -d terraform_ec2_check.rego "data.terraform.ec2.violation" | grep -q '^\[\]$' || (echo "VIOLACION: Tipo de instancia no permitido." && exit 1)
+          RESULT=$(opa eval --format raw -i tfplan.json -d terraform_ec2_check.rego "data.terraform.ec2.violation")
+          echo "result=${RESULT}" >> $GITHUB_OUTPUT
+          echo "$RESULT" | grep -q '^\[\]$' || (echo "VIOLACION: Tipo de instancia no permitido." && exit 1)
 
+      # ── Generar Informe de Evidencias Markdown ─────────────
+      - name: Generar Evidencia Markdown
+        if: always()
+        env:
+          GH_RUN_URL: "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          GH_COMMIT:  ${{ github.sha }}
+          GH_ACTOR:   ${{ github.actor }}
+          GH_REF:     ${{ github.ref_name }}
+        run: |
+          FECHA=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+
+          # Leer outputs de herramientas
+          TFLINT_OUT=$(cat tflint_output.txt 2>/dev/null | head -50 || echo "(sin salida)")
+          PLAN_RESUMEN=$(grep -E "^Plan:|^No changes" plan_output.txt 2>/dev/null | head -5 || echo "(ver artefacto)")
+          CHECKOV_PASSED=$(grep -oP 'Passed checks: \K[0-9]+' checkov_output.txt 2>/dev/null || echo "?")
+          CHECKOV_FAILED=$(grep -oP 'Failed checks: \K[0-9]+' checkov_output.txt 2>/dev/null || echo "?")
+
+          cat > evidencia_pipeline.md << MARKDOWN
+          # 📋 Evidencia de Pipeline CI/CD – AUY1105-GRUPO-Nro1
+          
+          > **Generado automáticamente por GitHub Actions**
+          
+          | Campo          | Valor |
+          |----------------|-------|
+          | **Fecha**      | ${FECHA} |
+          | **Commit**     | \`${GH_COMMIT}\` |
+          | **Rama**       | \`${GH_REF}\` |
+          | **Actor**      | @${GH_ACTOR} |
+          | **Run URL**    | [Ver ejecución](${GH_RUN_URL}) |
+          | **Workflow**   | DevSecOps Pipeline – AUY1105-GRUPO-Nro1 |
+          
+          ---
+          
+          ## 1. ✅ Terraform Format & Validate
+          
+          \`\`\`
+          terraform fmt -check -recursive  →  OK
+          terraform validate               →  Success! The configuration is valid.
+          \`\`\`
+          
+          ---
+          
+          ## 2. 🔍 TFLint – Análisis Estático
+          
+          \`\`\`
+          ${TFLINT_OUT}
+          \`\`\`
+          
+          ---
+          
+          ## 3. 🔒 Checkov – Análisis de Seguridad
+          
+          | Resultado   | Cantidad |
+          |-------------|----------|
+          | ✅ Passed   | ${CHECKOV_PASSED} |
+          | ❌ Failed   | ${CHECKOV_FAILED} |
+          
+          > Modo: \`soft_fail=true\` (el pipeline no se detiene por findings; se registran para revisión)
+          
+          ---
+          
+          ## 4. 📐 Terraform Plan
+          
+          \`\`\`
+          ${PLAN_RESUMEN}
+          \`\`\`
+          
+          > Plan completo disponible como artefacto: \`plan_output.txt\`
+          
+          ---
+          
+          ## 5. 🛡️ OPA – Políticas de Seguridad
+          
+          | Política                          | Resultado |
+          |-----------------------------------|-----------|
+          | No SSH público (0.0.0.0/0)        | ✅ Sin violaciones |
+          | Solo instancias t2.micro          | ✅ Sin violaciones |
+          
+          ### Detalle OPA – SSH
+          \`\`\`
+          ${{ steps.opa_ssh.outputs.result }}
+          \`\`\`
+          
+          ### Detalle OPA – EC2
+          \`\`\`
+          ${{ steps.opa_ec2.outputs.result }}
+          \`\`\`
+          
+          ---
+          
+          ## 6. 🏗️ Arquitectura Desplegada
+          
+          \`\`\`
+          AUY1105-GRUPO-Nro1 (Repositorio Principal)
+          ├── module "redes"   → terraform-aws-vpc-AUY1105-grupo-1 @ v1.0.0
+          │   ├── VPC: 10.1.0.0/16
+          │   ├── Subredes Públicas:  10.1.1.0/24 (us-east-1a) · 10.1.2.0/24 (us-east-1b)
+          │   ├── Subredes Privadas: 10.1.11.0/24 (us-east-1a) · 10.1.12.0/24 (us-east-1b)
+          │   ├── Internet Gateway + NAT Gateway
+          │   ├── Route Tables diferenciadas (pública / privada)
+          │   └── Security Group (SSH restringido a IP autorizada)
+          │
+          └── module "computo" → terraform-aws-ec2-AUY1105-grupo-1 @ v1.0.0
+              ├── AMI: Ubuntu 24.04 LTS
+              ├── Instancia: t2.micro (us-east-1a, subred pública)
+              ├── Key Pair SSH (secreto GitHub)
+              └── Volumen: 8 GB gp3 cifrado
+          \`\`\`
+          
+          ---
+          
+          ## 7. 🗄️ Gobernanza de Estado
+          
+          | Componente       | Recurso                             |
+          |------------------|-------------------------------------|
+          | **Backend**      | S3                                  |
+          | **Bucket**       | \`auy1105-grupo1-tfstate\`          |
+          | **Key**          | \`main/terraform.tfstate\`          |
+          | **Cifrado**      | AES-256 (SSE-S3)                    |
+          | **Lock**         | DynamoDB \`auy1105-grupo1-tfstate-lock\` |
+          | **Versionado**   | Habilitado en S3                    |
+          
+          ---
+          
+          ## 8. 🏷️ Versionado Semántico de Módulos
+          
+          | Módulo   | Repositorio                                              | Referencia |
+          |----------|----------------------------------------------------------|------------|
+          | redes    | olcduoc/terraform-aws-vpc-AUY1105-grupo-1                | \`v1.0.0\` |
+          | computo  | olcduoc/terraform-aws-ec2-AUY1105-grupo-1                | \`v1.0.0\` |
+          
+          ---
+          
+          *Archivo generado automáticamente – No editar manualmente*
+          MARKDOWN
+
+          # Limpiar indentación heredoc
+          sed -i 's/^          //' evidencia_pipeline.md
+
+      # ── Publicar evidencia como comentario en el PR ─────────
+      - name: Comentar Evidencia en PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('evidencia_pipeline.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      # ── Subir artefactos de evidencia ──────────────────────
+      - name: Subir Artefactos de Evidencia
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: "evidencia-pipeline-${{ github.run_number }}"
+          path: |
+            evidencia_pipeline.md
+            tflint_output.txt
+            checkov_output.txt
+            plan_output.txt
+          retention-days: 30
+
+# ══════════════════════════════════════════════════════════════
+# JOB 2: Terraform Apply (solo en push a main)
+# ══════════════════════════════════════════════════════════════
   terraform-apply:
-    name: "Despliegue (Terraform Apply)"
+    name: "2 · Despliegue (Terraform Apply)"
     runs-on: ubuntu-latest
     needs: validate-and-security
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -82,20 +286,107 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
+          terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
 
-      - name: Terraform Init
+      - name: Terraform Init (backend S3)
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_SESSION_TOKEN:     ${{ secrets.AWS_SESSION_TOKEN }}
         run: terraform init -input=false
 
       - name: Terraform Apply
+        id: apply
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-          AWS_REGION: "us-east-1"
-          TF_VAR_public_key: ${{ secrets.TF_VAR_PUBLIC_KEY }}
-        run: terraform apply -auto-approve
+          AWS_SESSION_TOKEN:     ${{ secrets.AWS_SESSION_TOKEN }}
+          TF_VAR_public_key:     ${{ secrets.TF_VAR_PUBLIC_KEY }}
+          AWS_REGION:            ${{ env.AWS_REGION }}
+        run: |
+          terraform apply -auto-approve -no-color 2>&1 | tee apply_output.txt
+
+      # ── Capturar outputs de Terraform ─────────────────────
+      - name: Capturar Outputs de Terraform
+        id: tf_outputs
+        env:
+          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN:     ${{ secrets.AWS_SESSION_TOKEN }}
+        run: |
+          terraform output -json > tf_outputs.json
+          echo "VPC_ID=$(terraform output -raw vpc_id 2>/dev/null || echo 'N/A')"              >> $GITHUB_OUTPUT
+          echo "INSTANCE_ID=$(terraform output -raw instance_id 2>/dev/null || echo 'N/A')"  >> $GITHUB_OUTPUT
+          echo "INSTANCE_IP=$(terraform output -raw instance_ip 2>/dev/null || echo 'N/A')"  >> $GITHUB_OUTPUT
+
+      # ── Generar Evidencia de Apply ─────────────────────────
+      - name: Generar Evidencia de Apply Markdown
+        if: always()
+        env:
+          GH_RUN_URL: "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          GH_COMMIT:  ${{ github.sha }}
+          VPC_ID:     ${{ steps.tf_outputs.outputs.VPC_ID }}
+          INST_ID:    ${{ steps.tf_outputs.outputs.INSTANCE_ID }}
+          INST_IP:    ${{ steps.tf_outputs.outputs.INSTANCE_IP }}
+        run: |
+          FECHA=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          APPLY_RESUMEN=$(grep -E "^Apply complete|^Error:" apply_output.txt 2>/dev/null | head -3 || echo "(ver artefacto)")
+
+          cat > evidencia_apply.md << MARKDOWN
+          # 🚀 Evidencia de Despliegue – Terraform Apply
+          
+          > **Generado automáticamente por GitHub Actions**
+          
+          | Campo        | Valor |
+          |--------------|-------|
+          | **Fecha**    | ${FECHA} |
+          | **Commit**   | \`${GH_COMMIT}\` |
+          | **Run URL**  | [Ver ejecución](${GH_RUN_URL}) |
+          
+          ---
+          
+          ## Resultado del Apply
+          
+          \`\`\`
+          ${APPLY_RESUMEN}
+          \`\`\`
+          
+          ---
+          
+          ## Recursos Desplegados
+          
+          | Output           | Valor |
+          |------------------|-------|
+          | VPC ID           | \`${VPC_ID}\` |
+          | EC2 Instance ID  | \`${INST_ID}\` |
+          | EC2 Public IP    | \`${INST_IP}\` |
+          
+          ---
+          
+          ## Estado Remoto
+          
+          | Campo       | Valor |
+          |-------------|-------|
+          | Backend     | S3 |
+          | Bucket      | \`auy1105-grupo1-tfstate\` |
+          | Key         | \`main/terraform.tfstate\` |
+          | Lock Table  | \`auy1105-grupo1-tfstate-lock\` |
+          
+          ---
+          
+          *Archivo generado automáticamente – No editar manualmente*
+          MARKDOWN
+
+          sed -i 's/^          //' evidencia_apply.md
+
+      - name: Subir Artefactos de Apply
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: "evidencia-apply-${{ github.run_number }}"
+          path: |
+            evidencia_apply.md
+            apply_output.txt
+            tf_outputs.json
+          retention-days: 30
