@@ -1,7 +1,5 @@
-# ─────────────────────────────────────────────────────────────
-# versions.tf  –  Repositorio Principal AUY1105-GRUPO-Nro1
-# Gobernanza de Estado: backend remoto S3 + DynamoDB (EVA3)
-# ─────────────────────────────────────────────────────────────
+# versions.tf  —  Repositorio Principal root_eft — Oscar Leiva
+# Gobernanza de Estado: backend remoto S3 + DynamoDB (EFT Individual)
 
 terraform {
   required_version = ">= 1.5.0"
@@ -14,11 +12,11 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "auy1105-grupo1-tfstate"
-    key            = "main/terraform.tfstate"
-    region         = "us-east-1"
-    encrypt        = true
-    dynamodb_table = "auy1105-grupo1-tfstate-lock"
+    bucket       = "eft-oleivac-tfstate"
+    key          = "main/terraform.tfstate"
+    region       = "us-east-1"
+    encrypt      = true
+    use_lockfile = true
   }
 }
 

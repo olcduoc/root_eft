@@ -1,7 +1,5 @@
-# ─────────────────────────────────────────────────────────────
-# main.tf  –  Repositorio Principal AUY1105-GRUPO-Nro1
-# Arquitectura Multi-AZ con subredes públicas y privadas (EVA3)
-# ─────────────────────────────────────────────────────────────
+# main.tf  —  Repositorio Principal root_eft (Oscar Leiva)
+# Arquitectura Multi-AZ con subredes públicas y privadas (EFT)
 
 module "redes" {
   source = "github.com/olcduoc/vpc_eft?ref=v2.0.0"
