@@ -165,7 +165,7 @@ output "instance_id"        { value = module.computo.instance_id }
 output "instance_ip"        { value = module.computo.instance_ip }
 output "vpc_id"             { value = module.redes.vpc_id }
 output "security_group_id"  { value = module.redes.security_group_id }
-output "public_subnet_ids"  { value = module.redes.public_subnet_ids }
+output "public_subnet_ids"  { value = module.redes.subnet_ids }
 output "private_subnet_ids" { value = module.redes.private_subnet_ids }
 output "nat_gateway_id"     { value = module.redes.nat_gateway_id }
 ```
