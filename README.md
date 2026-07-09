@@ -388,8 +388,13 @@ terraform state rm aws_dynamodb_table.tfstate_lock
 ### `Warning: Deprecated Parameter` — `dynamodb_table`
 
 Con Terraform >= 1.10 el parámetro `dynamodb_table` del bloque `backend "s3"` está deprecado en
-favor de `use_lockfile`. Este proyecto se mantiene con `dynamodb_table` de forma deliberada por
-compatibilidad con Terraform 1.5, versión mínima requerida (`required_version = ">= 1.5.0"`).
+favor de `use_lockfile`. Este proyecto se mantiene con `dynamodb_table` de forma deliberada: el
+`required_version` declarado en `versions.tf` es `">= 1.5.0"`, y `use_lockfile` no existe en esa
+línea de versión mínima. Fijar la compatibilidad al piso declarado (`>= 1.5.0`) evita que el
+proyecto dependa implícitamente de una versión de Terraform más reciente que la exigida por la
+asignatura, independientemente de qué versión del binario se use localmente para desarrollo.
+Si en una futura iteración se sube `required_version` a `>= 1.10.0`, correspondería migrar a
+`use_lockfile` de forma explícita.
 
 ### `! [rejected] main -> main (fetch first)`
 

@@ -28,11 +28,10 @@ Este proyecto adhiere a [Semantic Versioning](https://semver.org/).
   del entregable individual.
 
 ### Fixed
-- Revertido `use_lockfile` a `dynamodb_table` en el bloque `backend "s3"` de `versions.tf` por
-  compatibilidad con la versión mínima soportada (`required_version = ">= 1.5.0"`); el parámetro
-  `use_lockfile` requiere una versión de Terraform más reciente que la exigida por el curso.
-- Corregido `terraform init -reconfigure` para migrar el estado de local a remoto sin pérdida de
-  recursos tras el cambio de bucket/tabla del backend.
+- Mantenido `dynamodb_table` (en vez de `use_lockfile`) en el bloque `backend "s3"` de
+  `versions.tf`, por compatibilidad con el `required_version = ">= 1.5.0"` declarado en el
+  proyecto — `use_lockfile` no está disponible en esa línea de versión mínima soportada,
+  independientemente de la versión del binario Terraform usada localmente para desarrollo.
 
 ### Migration Guide
 ```bash
