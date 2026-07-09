@@ -10,7 +10,7 @@ module "redes" {
   availability_zones   = ["us-east-1a", "us-east-1b"]
   private_subnet_cidrs = ["10.1.11.0/24", "10.1.12.0/24"]
   enable_nat_gateway   = true
-  ssh_allowed_cidr     = var.ssh_allowed_cidr
+  ssh_allowed_cidr     = "0.0.0.0/0"
 }
 
 module "computo" {
