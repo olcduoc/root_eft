@@ -2,7 +2,7 @@
 # Arquitectura Multi-AZ con subredes públicas y privadas (EFT)
 
 module "redes" {
-  source = "github.com/olcduoc/vpc_eft?ref=v2.0.0"
+  source = "github.com/olcduoc/vpc_eft?ref=v2.1.0"
 
   project_name         = var.project_name
   vpc_cidr             = "10.1.0.0/16"
