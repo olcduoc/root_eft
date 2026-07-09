@@ -243,7 +243,7 @@ terraform plan -var="public_key=TU_CLAVE_PUBLICA"
 EOF
 
 # ── CHANGELOG.md actualizado ──────────────────────────────────
-cat > CHANGELOG.MD << 'EOF'
+cat > CHANGELOG.md << 'EOF'
 # Changelog – AUY1105-GRUPO-Nro1
 
 Todos los cambios notables en este proyecto serán documentados en este archivo.
@@ -295,7 +295,7 @@ echo "  ✅ variables.tf   (variables parametrizadas)"
 echo "  ✅ outputs.tf     (outputs consolidados)"
 echo "  ✅ versions.tf    (provider y versión Terraform)"
 echo "  ✅ README.md      (documentación actualizada EVA2)"
-echo "  ✅ CHANGELOG.MD   (versión 2.0.0 registrada)"
+echo "  ✅ CHANGELOG.md   (versión 2.0.0 registrada)"
 echo ""
 echo "Archivos eliminados:"
 echo "  🗑  vpc.tf"

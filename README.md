@@ -72,7 +72,7 @@ root_eft/
 ├── install.sh                          # User-data script para EC2
 ├── terraform_ssh_check.rego            # Política OPA: SSH no abierto a 0.0.0.0/0
 ├── terraform_ec2_check.rego            # Política OPA: tipo de instancia permitido
-├── CHANGELOG.MD                        # Historial de cambios por versión
+├── CHANGELOG.md                        # Historial de cambios por versión
 └── README.md                           # Este archivo
 ```
 
