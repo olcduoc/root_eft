@@ -1,4 +1,4 @@
-name: "DevSecOps Pipeline – AUY1105-GRUPO-Nro1"
+name: DevSecOps Pipeline – root_eft
 
 on:
   pull_request:
