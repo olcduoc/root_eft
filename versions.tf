@@ -12,11 +12,11 @@ terraform {
   }
 
   backend "s3" {
-    bucket       = "eft-oleivac-tfstate"
-    key          = "main/terraform.tfstate"
-    region       = "us-east-1"
-    encrypt      = true
-    use_lockfile = true
+    bucket         = "eft-oleivac-tfstate"
+    key            = "main/terraform.tfstate"
+    region         = "us-east-1"
+    encrypt        = true
+    dynamodb_table = "eft-oleivac-tfstate-lock"
   }
 }
 
