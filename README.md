@@ -1,20 +1,21 @@
-# AUY1105-GRUPO-Nro1
+# root_eft
 
 > **Evaluación Final Transversal (EFT126) — Infraestructura como Código II**
 > Duoc UC · V Semestre 2026 · Docente: Camilo Jerez
+> Entrega individual — Oscar Leiva
 
-[![Pipeline DevSecOps](https://github.com/olcduoc/AUY1105-GRUPO-Nro1/actions/workflows/AUY1105-GRUPO-Nro1.yml/badge.svg)](https://github.com/olcduoc/AUY1105-GRUPO-Nro1/actions)
+[![Pipeline DevSecOps](https://github.com/olcduoc/root_eft/actions/workflows/root_eft.yml/badge.svg)](https://github.com/olcduoc/root_eft/actions)
 ![Terraform](https://img.shields.io/badge/Terraform-≥1.5.0-7B42BC?logo=terraform)
 ![AWS](https://img.shields.io/badge/AWS-us--east--1-FF9900?logo=amazon-aws)
 ![State](https://img.shields.io/badge/State-S3%20%2B%20DynamoDB-4FC3F7)
-![Módulo VPC](https://img.shields.io/badge/módulo%20VPC-v2.0.0-2E7D32)
-![Módulo EC2](https://img.shields.io/badge/módulo%20EC2-v1.0.0-1565C0)
+![Módulo VPC](https://img.shields.io/badge/módulo%20vpc__eft-v2.0.0-2E7D32)
+![Módulo EC2](https://img.shields.io/badge/módulo%20ec2__eft-v1.0.0-1565C0)
 
 ---
 
 ## Descripción
 
-Repositorio orquestador de la infraestructura AWS del grupo AUY1105-GRUPO-Nro1.
+Repositorio orquestador de la infraestructura AWS del proyecto individual **EFT-OscarLeiva**.
 Aprovisiona una arquitectura de red **Multi-AZ** de alta disponibilidad consumiendo dos módulos
 de Terraform independientes versionados semánticamente, con estado remoto cifrado en S3,
 bloqueo de concurrencia en DynamoDB y un pipeline DevSecOps completo en GitHub Actions.
@@ -23,10 +24,10 @@ bloqueo de concurrencia en DynamoDB y un pipeline DevSecOps completo en GitHub A
 
 | Repositorio | Rol | Versión |
 |---|---|---|
-| **AUY1105-GRUPO-Nro1** ← *este repo* | Orquestador principal | — |
-| [terraform-aws-vpc-AUY1105-grupo-1](https://github.com/olcduoc/terraform-aws-vpc-AUY1105-grupo-1) | Módulo de red | `v2.0.0` |
-| [terraform-aws-ec2-AUY1105-grupo-1](https://github.com/olcduoc/terraform-aws-ec2-AUY1105-grupo-1) | Módulo de cómputo | `v1.0.0` |
-| [terraform-aws-backend-AUY1105](https://github.com/olcduoc/terraform-aws-backend-AUY1105) | Gestión del backend S3+DynamoDB | estado local |
+| **root_eft** ← *este repo* | Orquestador principal | — |
+| [vpc_eft](https://github.com/olcduoc/vpc_eft) | Módulo de red | `v2.0.0` |
+| [ec2_eft](https://github.com/olcduoc/ec2_eft) | Módulo de cómputo | `v1.0.0` |
+| [terraform-aws-backend-EFT](https://github.com/olcduoc/terraform-aws-backend-EFT) | Gestión del backend S3+DynamoDB | estado local |
 
 ---
 
@@ -35,7 +36,7 @@ bloqueo de concurrencia en DynamoDB y un pipeline DevSecOps completo en GitHub A
 ```
 AWS us-east-1  ·  Cuenta: 339712721078
 │
-└── VPC: 10.1.0.0/16  (vpc-090a815e770376a70)
+└── VPC: 10.1.0.0/16  (vpc-0dbadcc16e2c40c38)
     │
     ├── us-east-1a
     │   ├── subnet-public-1   10.1.1.0/24   → Internet Gateway
@@ -45,12 +46,12 @@ AWS us-east-1  ·  Cuenta: 339712721078
     │   ├── subnet-public-2   10.1.2.0/24   → Internet Gateway
     │   └── subnet-private-2  10.1.12.0/24  → NAT Gateway
     │
-    ├── Internet Gateway  (igw-0e36cffe5243d86ec)
-    ├── NAT Gateway       (nat-02754fcf4035a9700)  ← subred pública us-east-1a
+    ├── Internet Gateway  (igw-03a40e18371d454a2)
+    ├── NAT Gateway       (nat-0c8520a60872f1bda)  ← subred pública us-east-1a
     ├── Route Table pública   → IGW
     ├── Route Table privada   → NAT Gateway
-    ├── Security Group        → SSH/22 restringido a IP autorizada (/32)
-    └── EC2 t2.micro          (i-0c16b97f88766c51a)  IP pública: 52.202.157.3
+    ├── Security Group        (sg-0f19a13d859c659b2) → SSH/22 restringido a IP autorizada (/32)
+    └── EC2 t2.micro          (i-07706b1c46498d116)  IP pública: 54.157.26.182
 ```
 
 **Recursos totales desplegados:** 17 · **Apply:** 17 added, 0 changed, 0 destroyed
@@ -60,10 +61,10 @@ AWS us-east-1  ·  Cuenta: 339712721078
 ## Estructura del repositorio
 
 ```
-AUY1105-GRUPO-Nro1/
+root_eft/
 ├── .github/
 │   └── workflows/
-│       └── AUY1105-GRUPO-Nro1.yml     # Pipeline DevSecOps
+│       └── root_eft.yml                # Pipeline DevSecOps
 ├── main.tf                             # Módulos redes + computo
 ├── versions.tf                         # Backend S3 + providers
 ├── variables.tf                        # Variables de entrada
@@ -71,7 +72,7 @@ AUY1105-GRUPO-Nro1/
 ├── install.sh                          # User-data script para EC2
 ├── terraform_ssh_check.rego            # Política OPA: SSH no abierto a 0.0.0.0/0
 ├── terraform_ec2_check.rego            # Política OPA: tipo de instancia permitido
-├── CHANGELOG.md                        # Historial de cambios por versión
+├── CHANGELOG.MD                        # Historial de cambios por versión
 └── README.md                           # Este archivo
 ```
 
@@ -93,11 +94,11 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "auy1105-grupo1-tfstate"
+    bucket         = "eft-oleivac-tfstate"
     key            = "main/terraform.tfstate"
     region         = "us-east-1"
     encrypt        = true
-    dynamodb_table = "auy1105-grupo1-tfstate-lock"
+    dynamodb_table = "eft-oleivac-tfstate-lock"
   }
 }
 
@@ -110,7 +111,7 @@ provider "aws" {
 
 ```hcl
 module "redes" {
-  source = "github.com/olcduoc/terraform-aws-vpc-AUY1105-grupo-1?ref=v2.0.0"
+  source = "github.com/olcduoc/vpc_eft?ref=v2.0.0"
 
   project_name         = var.project_name
   vpc_cidr             = "10.1.0.0/16"
@@ -122,7 +123,7 @@ module "redes" {
 }
 
 module "computo" {
-  source = "github.com/olcduoc/terraform-aws-ec2-AUY1105-grupo-1?ref=v1.0.0"
+  source = "github.com/olcduoc/ec2_eft?ref=v1.0.0"
 
   project_name      = var.project_name
   subnet_id         = module.redes.subnet_ids[0]
@@ -153,25 +154,27 @@ variable "ssh_allowed_cidr" {
 variable "project_name" {
   description = "Nombre base del proyecto para etiquetar los recursos."
   type        = string
-  default     = "AUY1105-GRUPO-Nro1"
+  default     = "EFT-OscarLeiva"
 }
 ```
 
 ### `outputs.tf`
 
 ```hcl
-output "instance_id"       { value = module.computo.instance_id }
-output "instance_ip"       { value = module.computo.instance_ip }
-output "vpc_id"            { value = module.redes.vpc_id }
-output "security_group_id" { value = module.redes.security_group_id }
-output "subnet_ids"        { value = module.redes.subnet_ids }
+output "instance_id"        { value = module.computo.instance_id }
+output "instance_ip"        { value = module.computo.instance_ip }
+output "vpc_id"             { value = module.redes.vpc_id }
+output "security_group_id"  { value = module.redes.security_group_id }
+output "public_subnet_ids"  { value = module.redes.public_subnet_ids }
+output "private_subnet_ids" { value = module.redes.private_subnet_ids }
+output "nat_gateway_id"     { value = module.redes.nat_gateway_id }
 ```
 
 ---
 
 ## Pipeline CI/CD
 
-El archivo `.github/workflows/AUY1105-GRUPO-Nro1.yml` implementa un pipeline DevSecOps
+El archivo `.github/workflows/root_eft.yml` implementa un pipeline DevSecOps
 con dos jobs secuenciales:
 
 ```
@@ -180,12 +183,11 @@ push / PR                                    merge a main
     ▼                                              ▼
 ┌──────────────────────┐              ┌──────────────────────┐
 │  Validación y        │    éxito     │  Despliegue          │
-│  Seguridad           │─────────────►│  (Terraform Apply)   │
+│  Seguridad            │─────────────►│  (Terraform Apply)   │
 │                      │              │                      │
 │  • terraform fmt     │              │  • terraform init    │
-│  • TFLint            │              │  • terraform apply   │
+│  • terraform validate│              │  • terraform apply   │
 │  • Checkov           │              │    -auto-approve     │
-│  • terraform plan    │              │                      │
 │  • OPA / Rego        │              │                      │
 └──────────────────────┘              └──────────────────────┘
 ```
@@ -207,11 +209,18 @@ push / PR                                    merge a main
 - **`terraform_ssh_check.rego`** — Valida que ningún Security Group permita SSH (`22/tcp`) desde `0.0.0.0/0`.
 - **`terraform_ec2_check.rego`** — Valida que el tipo de instancia EC2 esté dentro de los tipos permitidos.
 
+### Nota sobre Checkov (CKV_TF_1)
+
+El análisis estático de Checkov reporta que los módulos `redes` y `computo` se referencian por
+**tag semántico** (`?ref=v2.0.0`, `?ref=v1.0.0`) en lugar de por hash de commit fijo. Es una decisión
+de diseño consciente: se priorizó la trazabilidad y legibilidad que aporta el versionado semántico.
+El hallazgo queda documentado y no bloquea el despliegue.
+
 ---
 
-## Versionado Semántico — Módulo VPC
+## Versionado Semántico — Módulo VPC (`vpc_eft`)
 
-El módulo de red evolucionó durante el semestre con tres versiones publicadas como tags de Git:
+El módulo de red evolucionó con tres versiones publicadas como tags de Git:
 
 | Tag | Tipo | Cambios |
 |---|---|---|
@@ -219,7 +228,7 @@ El módulo de red evolucionó durante el semestre con tres versiones publicadas 
 | `v1.0.0` | STABLE | Interfaz de variables/outputs estabilizada, primera versión en producción |
 | `v2.0.0` | **MAJOR** | Agrega `private_subnet_cidrs`, `enable_nat_gateway`, soporte Multi-AZ — **rompe compatibilidad con v1.x** |
 
-El orquestador consume los módulos anclados a tags específicos (`?ref=v2.0.0`) en lugar de
+El orquestador consume los módulos anclados a tags específicos (`?ref=v2.0.0`, `?ref=v1.0.0`) en lugar de
 referencias a ramas, garantizando reproducibilidad del despliegue aunque los módulos sigan evolucionando.
 
 ---
@@ -232,23 +241,21 @@ Gestionar la infraestructura del backend en el mismo proyecto Terraform que la c
 genera una **dependencia circular**: el backend no puede almacenar su propio estado mientras
 los recursos que lo forman dependen de ese estado para existir.
 
-**Síntoma detectado:** `terraform plan` mostraba 5 destrucciones inesperadas (bucket + configuraciones + DynamoDB).
-
 **Solución aplicada:** el backend se gestiona en el repositorio independiente
-[terraform-aws-backend-AUY1105](https://github.com/olcduoc/terraform-aws-backend-AUY1105)
+[terraform-aws-backend-EFT](https://github.com/olcduoc/terraform-aws-backend-EFT)
 con estado local, separando completamente las responsabilidades.
 
 ### Recursos del backend (gestionados externamente)
 
 | Recurso AWS | ID / Nombre |
 |---|---|
-| Bucket S3 | `auy1105-grupo1-tfstate` |
+| Bucket S3 | `eft-oleivac-tfstate` |
 | Versionado | Habilitado |
 | Cifrado | AES-256 (SSE-S3) |
 | Acceso público | Bloqueado |
-| Tabla DynamoDB | `auy1105-grupo1-tfstate-lock` |
+| Tabla DynamoDB | `eft-oleivac-tfstate-lock` |
 | Clave de partición | `LockID` (String) |
-| Modo de capacidad | PAY_PER_REQUEST |
+| Modo de capacidad | PAY_PER_REQUEST (bajo demanda) |
 
 ---
 
@@ -264,8 +271,8 @@ con estado local, separando completamente las responsabilidades.
 ### 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/olcduoc/AUY1105-GRUPO-Nro1.git
-cd AUY1105-GRUPO-Nro1
+git clone https://github.com/olcduoc/root_eft.git
+cd root_eft
 ```
 
 ### 2. Verificar identidad AWS
@@ -283,8 +290,8 @@ terraform init
 Terraform descarga automáticamente los módulos anclados a sus tags de Git:
 
 ```
-Downloading git::https://github.com/olcduoc/terraform-aws-vpc-AUY1105-grupo-1.git?ref=v2.0.0 for redes...
-Downloading git::https://github.com/olcduoc/terraform-aws-ec2-AUY1105-grupo-1.git?ref=v1.0.0 for computo...
+Downloading git::https://github.com/olcduoc/vpc_eft.git?ref=v2.0.0 for redes...
+Downloading git::https://github.com/olcduoc/ec2_eft.git?ref=v1.0.0 for computo...
 Terraform has been successfully initialized!
 ```
 
@@ -305,11 +312,13 @@ terraform apply -var="public_key=$(cat ~/.ssh/id_rsa.pub)" -auto-approve
 **Outputs tras el apply:**
 
 ```
-instance_id       = "i-0c16b97f88766c51a"
-instance_ip       = "52.202.157.3"
-security_group_id = "sg-0128c76ebbc6d660c"
-subnet_ids        = ["subnet-0aa435deabc585bbc", "subnet-047dc2ff68a526e4d"]
-vpc_id            = "vpc-090a815e770376a70"
+instance_id        = "i-07706b1c46498d116"
+instance_ip        = "54.157.26.182"
+nat_gateway_id     = "nat-0c8520a60872f1bda"
+private_subnet_ids = ["subnet-0aa8d874cad0cc362", "subnet-0a10451afb366a5be"]
+public_subnet_ids  = ["subnet-012302d5b387cb63f", "subnet-05601008e00a0728f"]
+security_group_id  = "sg-0f19a13d859c659b2"
+vpc_id             = "vpc-0dbadcc16e2c40c38"
 ```
 
 ### 6. Verificar conectividad SSH
@@ -331,7 +340,7 @@ terraform destroy -var="public_key=$(cat ~/.ssh/id_rsa.pub)" -auto-approve
 
 **Resultado esperado:** `Destroy complete! Resources: 17 destroyed.`
 
-> El bucket S3 (`auy1105-grupo1-tfstate`) y la tabla DynamoDB (`auy1105-grupo1-tfstate-lock`)
+> El bucket S3 (`eft-oleivac-tfstate`) y la tabla DynamoDB (`eft-oleivac-tfstate-lock`)
 > **no se destruyen** con este comando — se gestionan desde el proyecto de backend independiente
 > y se reutilizan entre sesiones.
 
@@ -376,6 +385,12 @@ terraform state rm aws_s3_bucket_public_access_block.tfstate
 terraform state rm aws_dynamodb_table.tfstate_lock
 ```
 
+### `Warning: Deprecated Parameter` — `dynamodb_table`
+
+Con Terraform >= 1.10 el parámetro `dynamodb_table` del bloque `backend "s3"` está deprecado en
+favor de `use_lockfile`. Este proyecto se mantiene con `dynamodb_table` de forma deliberada por
+compatibilidad con Terraform 1.5, versión mínima requerida (`required_version = ">= 1.5.0"`).
+
 ### `! [rejected] main -> main (fetch first)`
 
 ```bash
@@ -392,12 +407,11 @@ terraform force-unlock <LOCK-ID>
 
 ---
 
-## Integrantes
+## Autoría
 
 | Integrante | GitHub | Rol |
 |---|---|---|
-| Juan Pablo | `olcduoc` | Módulo de red, revisión de código, PR |
-| Oscar Leiva | `oscarleivacessap` | Orquestador, backend, pipeline CI/CD, documentación |
+| Oscar Leiva | `olcduoc` | Orquestador, módulos, backend, pipeline CI/CD, documentación |
 
 **Cuenta AWS Academy:** `339712721078` · Región: `us-east-1`
 **Docente:** Camilo Jerez · **Asignatura:** AUY1105 — Infraestructura como Código II
