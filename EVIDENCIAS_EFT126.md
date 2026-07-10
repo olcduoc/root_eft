@@ -110,6 +110,39 @@ terraform plan -var="public_key=$(cat ~/.ssh/id_rsa.pub)"
 # El apply se ejecuta automáticamente vía pipeline al hacer merge a main
 ```
 
+## Anexo — Optimización de Configuraciones Terraform (IE4.2.1)
+
+Se refactorizó el módulo `vpc_eft` para eliminar la duplicación de bloques `resource` en la
+declaración de subredes, migrando de `count` a `for_each` sobre `locals`, mejorando legibilidad,
+mantenibilidad y escalabilidad a N zonas de disponibilidad sin duplicar código.
+
+**Figura A.** *`main.tf` de `vpc_eft` (rama `main`, tag `v2.1.0`) mostrando el bloque `locals`
+(`public_subnets`, `private_subnets`) y los recursos `aws_subnet.public`/`aws_subnet.private`
+declarados con `for_each` en lugar de `count`.*
+`https://github.com/olcduoc/vpc_eft/blob/main/main.tf`
+
+**Figura B.** *Página de tags de `vpc_eft` confirmando la publicación de `v2.1.0` junto a las
+versiones anteriores `v0.1.0`, `v1.0.0` y `v2.0.0`.*
+`https://github.com/olcduoc/vpc_eft/tags`
+
+**Figura C.** *`terraform plan` ejecutado en `root_eft` tras actualizar la referencia del módulo
+a `?ref=v2.1.0`, confirmando migración de state transparente gracias a los bloques `moved`
+declarados en `moved.tf`:*
+```
+Plan: 0 to add, 0 to change, 0 to destroy.
+```
+Esto demuestra que la optimización de código **no tuvo ningún impacto en la infraestructura
+ya desplegada** — ni destrucción ni recreación de recursos.
+
+**Figura D.** *Ejecución del pipeline en GitHub Actions tras el commit
+`"chore: actualizar módulo redes a vpc_eft v2.1.0..."`, con ambos jobs completados
+exitosamente (Validación y Seguridad ✅ · Despliegue ✅).*
+`https://github.com/olcduoc/root_eft/actions`
+
+**Conclusión:** la optimización cumple el indicador IE4.2.1 ("aplica técnicas de optimización...
+asegurando que las estructuras sean eficientes y fáciles de mantener"), sin comprometer la
+estabilidad ni requerir reconstrucción de la infraestructura productiva.
+
 ---
 
 *Documento actualizado para la entrega individual EFT126 – AUY1105 – Duoc UC 2026*
